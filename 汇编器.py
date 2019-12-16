@@ -91,8 +91,19 @@ def s2b(s):
     for c in s:
         ans += c2b(c)+'\n'
     return ans
+def b2h(s,n = 4):
+    """将01字符串转化为16进制字符串"""
+    ans = hex(eval('0b'+s))[2:].upper()
+    ans = (n - len(ans))*'0' + ans
+    return ans
     
 #文本处理
+def deln(s):
+    """如果字符串以'\n'结尾，则去掉"""
+    if s[-1] == '\n':
+        return s[:-1]
+    else :
+        return s
 def addn(s):
     """使字符串统一以'\n'结尾"""
     if s[-1] == '\n':
@@ -153,9 +164,9 @@ rows_num_dict = {
 def parser(filename):
     if GetSuffix(filename) != "asm":
         raise UserWarning("Input file name should be ended with '.asm'!")
-    with open(filename,"r") as fi:
+    with open(filename,"r") as f_asm:
         bin_lines = []
-        lines = fi.readlines()
+        lines = f_asm.readlines()
         clean_lines = []                    #处理过后的、只剩label和指令
         for line in lines:
             cln_line = DelComment(sp(line))
@@ -208,19 +219,26 @@ def parser(filename):
         ############################################
         cur = orig
         for line in clean_lines:
-            bin_lines.append(eval(op_dict[normalize(line[0])]))
+            bin_lines.append(addn(eval(op_dict[normalize(line[0])])))
             cur += eval(rows_num_dict[line[0]])
+        #格式统一化处理
+        bin_lines = [addn(d2ub(str(orig),16))] + bin_lines
+        bin_lines = sp(''.join(bin_lines))
         ############################################
         ##写入
         ############################################
-        with open(ChangeSuffix(filename,"bin"),"w") as fo:
-            fo.write(addn(d2ub(str(orig),16)))
+        with open(ChangeSuffix(filename,"bin"),"w") as f_bin:
             for line in bin_lines:
-                fo.write(addn(line))
-
+                f_bin.write(addn(line))
+        with open(ChangeSuffix(filename,"hex"),"w") as f_hex:
+            for line in bin_lines:
+                f_hex.write(addn(b2h(line)))
+        with open(ChangeSuffix(filename,"obj"),"wb") as f_bin:
+            for line in bin_lines:
+                f_bin.write(bytearray.fromhex(b2h(line)))
 def main():
     filename = input("Name of file : ")
     parser(filename)
-    input()
+    input("\nPress any key to continue......\n")
 
 main()
