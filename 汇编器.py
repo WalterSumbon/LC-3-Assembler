@@ -1,3 +1,4 @@
+#文件名后缀解析/操作
 def GetSuffix(filename):
     point = filename.rfind(".")
     if point == -1:
@@ -7,6 +8,8 @@ def GetSuffix(filename):
 def ChangeSuffix(filename,newsuffix):
     point = filename.rfind(".")
     return filename[:point]+'.'+newsuffix
+
+#词法分析
 def sp(s):
     """切分元素"""
     blank = ['\t',' ','\n',',']
@@ -26,6 +29,8 @@ def sp(s):
                 i = j
                 in_blank_area = False
     return ans
+
+#语法分析
 def DelComment(l):
     """删除注释"""
     comment_start = len(l)
@@ -46,6 +51,8 @@ def cut(lines):
     if end_place == -1:
         raise UserWarning("A program should ended with '.END'")
     return lines[:end_place]
+
+#编码转换
 def imp(x):
     """求二进制数-x的等长补码表示"""
     n = len(x)
@@ -84,12 +91,23 @@ def s2b(s):
     for c in s:
         ans += c2b(c)+'\n'
     return ans
+    
+#文本处理
 def addn(s):
-	if s[-1] == '\n':
-		return s
-	else:
-		return s + '\n'
+    """使字符串统一以'\n'结尾"""
+    if s[-1] == '\n':
+        return s
+    else:
+        return s + '\n'
+def normalize(ins):
+    """将汇编指令大小写格式统一化"""
+    if ins[:2] == "BR":
+        return ins.upper()
+    else:
+        return ins
+
 ####################################################
+#标签表
 label_dict = dict()
 
 #指令翻译模式
@@ -125,7 +143,7 @@ op_dict = {
 ".END"      : """ raise UserWarning('.END' can be only used at the end of the program!) """
 }
 
-#解析当前行的指令并计算转化成机器码之后会占用多少行
+#计算当前行指令对应机器码的占用行数
 rows_num_dict = {
 ".BLKW" : "eval(line[1])",
 ".STRINGZ" : "len(eval(line[1]))+1"
@@ -153,17 +171,17 @@ def parser(filename):
         ############################################
         cur = orig
         for i,line in enumerate(clean_lines):
-            if line[0].upper() not in op_dict:
+            if normalize(line[0]) not in op_dict:
                 if len(line) == 1:
                     raise UserWarning("".join(line)+"\nLabel should not be attach before a blank line!")
-                if line[1].upper() in op_dict:
+                if normalize(line[1]) in op_dict:
                     label_dict[line[0]] = cur           #记录label
                     line = clean_lines[i] = line[1:]    #从clean_lines和line中删去label
                 else:
                     raise UserWarning("".join(line)+"\nEach line is expected to have only one label!")
             cur += eval(rows_num_dict.setdefault(line[0],"1"))
         ############################################
-        ##第二遍扫描
+        ##解析函数
         ############################################
         def reg(s):
             if s[0] != 'R':
@@ -185,9 +203,12 @@ def parser(filename):
                 return imm(s,n)
             else:
                 return d2ib(str(label_dict[s] - cur - 1),n)
+        ############################################
+        ##第二遍扫描
+        ############################################
         cur = orig
         for line in clean_lines:
-            bin_lines.append(eval(op_dict[line[0].upper()]))
+            bin_lines.append(eval(op_dict[normalize(line[0])]))
             cur += eval(rows_num_dict[line[0]])
         ############################################
         ##写入
@@ -200,5 +221,6 @@ def parser(filename):
 def main():
     filename = input("Name of file : ")
     parser(filename)
+    input()
 
 main()
